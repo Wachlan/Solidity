@@ -9,9 +9,14 @@ contract Voting {
   string public winner_;
   bool public voteStarted_;
 
+  struct voters {
+    bool registered;
+    bool voted;
+  }
+
   mapping(uint8 => uint256) public candidateTotals_;
   mapping(uint8 => string) public candidateIds_; // so we can get strings
-  mapping(address => bool) private voters_;
+  mapping(address => voters) private voters_;
 
  
   event voteCast(address voter, string candidate);
@@ -37,7 +42,7 @@ contract Voting {
   function registerVoter() external {
     require(!voteStarted_, "Vote started");
 
-    voters_[msg.sender] = true;
+    voters_[msg.sender].registered = true;
   }
 
   // Start the vote
@@ -51,8 +56,11 @@ contract Voting {
 
   // Cast your vote
   function castVote(uint8 _candidate) external {
-    require(voters_[msg.sender],"Not registered");
+    require(voters_[msg.sender].registered,"Not registered");
+    require(voters_[msg.sender].voted,"Already voted");
     require(voteStarted_, "Vote not started");
+    voters_[msg.sender].voted = true;
+
     if (block.timestamp <= startTime_ + VOTE_DURATION) {
 
        // Increment the vote for the candidate
