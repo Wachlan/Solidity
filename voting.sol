@@ -1,38 +1,58 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.4.21;
+pragma solidity ^0.8.13;
 
 
 contract Voting {
-  uint256 public constant VOTE_DURATION = 2 minutes;
+  uint256 public VOTE_DURATION;
   uint256 private startTime_;
   string[] public candidates_;
   string public winner_;
+  bool public voteStarted_;
 
   mapping(uint8 => uint256) public candidateTotals_;
-  mapping(uint8 => string) private candidateIds_; // so we can get strings
+  mapping(uint8 => string) public candidateIds_; // so we can get strings
+  mapping(address => bool) private voters_;
 
  
   event voteCast(address voter, string candidate);
   event VoteStillActive(uint256 remainingTime);
   event VoteComplete(string winner);
+  event voteStarted();
 
-  constructor() public {
+  constructor(uint256 voteDuration) public {
+    VOTE_DURATION = voteDuration;
+    voteStarted_ = false;
+    
+  }
+
+  // Register as candidate
+  function registerCandidate(string memory _candidate) external {
+    require(!voteStarted_, "Vote started");
+
+    candidates_.push(_candidate);
+    candidateIds_[0] = _candidate;
+  }
+
+  // Register as voter
+  function registerVoter() external {
+    require(!voteStarted_, "Vote started");
+
+    voters_[msg.sender] = true;
+  }
+
+  // Start the vote
+  function startVote() external {
+    require(!voteStarted_,"Vote started");
+    require(candidates_.length > 1);
+    voteStarted_ = true;
     startTime_ = block.timestamp;
-
-    // Hardcoded candidates
-    candidates_.push("Adam");
-    candidateIds_[0] = "Adam";
-    candidates_.push("Becky");
-    candidateIds_[1] = "Becky";
-
-    /************************
-     * Add other candidates *
-     ***********************/
-
+    emit voteStarted();
   }
 
   // Cast your vote
   function castVote(uint8 _candidate) external {
+    require(voters_[msg.sender],"Not registered");
+    require(voteStarted_, "Vote not started");
     if (block.timestamp <= startTime_ + VOTE_DURATION) {
 
        // Increment the vote for the candidate
