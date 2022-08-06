@@ -14,7 +14,8 @@ contract CrowdFund {
 
     }
 
-    event Launch(uint id, address creator, uint goal, uint32 startTime, uint32 endTime);
+    event Launch(uint indexed id, address indexed creator, uint goal, uint32 startTime, uint32 endTime);
+    event Cancel(uint indexed id);
 
     IERC20 public immutable token;
     mapping(uint => Campaign) public campaigns;
@@ -26,7 +27,7 @@ contract CrowdFund {
         token = IERC20(_token);
     }
 
-    function launch (uint _goal, uint32 _startTime, uint32 _endTime) external {
+    function launch(uint _goal, uint32 _startTime, uint32 _endTime) external {
       require(_startTime >= block.timestamp, "Start < Current time");
       require(_endTime > _startTime, "End < Start");
       
@@ -40,6 +41,15 @@ contract CrowdFund {
       });
 
       emit Launch(count, msg.sender, _goal, _startTime, endtime);
+    }
+
+    function cancel(uint _id) external {
+      Campaign memory campaign = campaigns[_id];
+      require(msg.sender = campaigns[_id].creator,"Not owner");
+      require(block.timestamp < campaigns[_id].startTime,"Already started");
+
+      delete campaigns[_id];
+      emit Cancel(_id);
     }
 
 }
