@@ -16,10 +16,12 @@ contract CrowdFund {
 
     event Launch(uint indexed id, address indexed creator, uint goal, uint32 startTime, uint32 endTime);
     event Cancel(uint indexed id);
+    event Pledge(uint indexed id, addressed indexed contributor, uint value);
+    event Unpledge(uint indexed id, addressed indexed contributor, uint value);
 
     IERC20 public immutable token;
     mapping(uint => Campaign) public campaigns;
-    mapping(uint => mapping(address => uint)) public contribution;
+    mapping(uint => mapping(address => uint)) public pledgedAmount;
     uint public count;
 
 
@@ -45,11 +47,35 @@ contract CrowdFund {
 
     function cancel(uint _id) external {
       Campaign memory campaign = campaigns[_id];
-      require(msg.sender = campaigns[_id].creator,"Not owner");
-      require(block.timestamp < campaigns[_id].startTime,"Already started");
+      require(msg.sender = campaign.creator,"Not owner");
+      require(block.timestamp < campaign.startTime,"Already started");
 
       delete campaigns[_id];
       emit Cancel(_id);
+    }
+
+    function pledge(uint _id, uint _amount) external {
+      Campaign storage campaign = campaigns[_id];
+      require(block.timestamp >= campaign.startTime, "Not started");
+      require(block.timestamp <= campaign.endTime, "Ended");
+
+      token.transferFrom(msg.sender, address(this), _amount);
+      campaign.pledged += amount;
+      pledgedAmount[_id][msg.sender] += amount;
+      
+      emit Pledge(_id, msg.sender, _amount);
+    }
+
+    function unpledge(uint _id, uint _amount) external {
+      Campaign storage campaign = campaigns[_id];
+      require(block.timestamp <= campaign.endTime, "Ended");
+      require(pledgedAmount[_id][msg.sender] >= _amount,"Insufficient funds");
+
+      campaign.pledged -= amount;
+      pledgedAmount[_id][msg.sender] -= amount;
+      token.transferFrom(address(this), msg.sender, _amount);
+
+      emit unPledge(_id, msg.sender, _amount);
     }
 
 }
